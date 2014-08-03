@@ -1,37 +1,5 @@
+// File settings
 var fs = require('fs');
-function Pond(name, vol, conc, bacEat, flowOut, prevPond)  {
-    this.name = name;
-    this.vol = vol;
-    this.conc = conc;
-    this.bacEat = bacEat;
-    this.prevPond = prevPond;
-    this.flowOut = flowOut;
-}
-var out = "";
-Pond.prototype.tick = function() {
-  if (this.prevPond) {
-      flowIn = this.prevPond.flowOut;
-      concIn = this.prevPond.conc;
-  } else { 
-    flowIn = 0;
-    concIn = 0;
-  }
-    
-  tempVol = this.vol + flowIn - this.flowOut;
-  this.conc = ((this.vol - this.flowOut) * this.conc 
-               + flowIn * concIn) / tempVol;
-  this.conc = this.conc * (1-this.bacEat);
-  this.vol = tempVol;
-  
-}
-
-ponds = [];
-ponds.push(new Pond("östra",1000000,62,0,34.5,null));
-ponds.push(new Pond("ref",1500,62,0.01,34.5,ponds[0]));
-ponds.push(new Pond("Toves",1500,62,0.015,34.5,ponds[1]));
-ponds.push(new Pond("out",72000,25,0,0,ponds[2]));
-
-var i = 0;
 var today = new Date();
 var fileName = process.argv[2] || ""
   + today.getFullYear()
@@ -41,19 +9,74 @@ var fileName = process.argv[2] || ""
   + today.getMinutes()
   + today.getSeconds()
   + ".csv";
-var fd = fs.openSync(fileName,'ax');
-while(i <= 3000) {
-  for(j=0;j < ponds.length; j++){
-      ponds[ponds.length-j-1].tick();
-  }
-  var row = Buffer((
-         ponds[0].conc + ";" 
-       + ponds[1].conc + ";" 
-       + ponds[2].conc + ";" 
-       + ponds[3].conc
-       ).replace(".",",") 
-       + "\r\n");
-  fs.writeSync(fd, row,0,row.length,5);
-  i++;
+
+
+// Pond object
+function Pond(vol, conc, reducedPerHourInPercent)  {
+    this.vol = vol;
+    this.ammount = conc * vol;
+    this.reducedPerHour = reducedPerHourInPercent/100.0;
+    this.flows = [];
 }
-fs.closeSync(fd);
+Pond.prototype.addFlow = function(connectedPond, flowInCbcM) {
+  this.flows.push(new Flow(this, connectedPond, flowInCbcM))
+}
+Pond.prototype.getConc = function() {
+  if (this.vol === 0) { return 0; }
+  return this.ammount / this.vol;
+};
+Pond.prototype.pour = function(flowToPond, flowInCbcM) {
+  if (this.vol - flowInCbcM <= 0) { return; }
+  if (!flowToPond) { return; }
+  var ammount = flowInCbcM * this.getConc();
+  this.ammount -= ammount
+  this.vol -= flowInCbcM;
+  flowToPond.ammount += ammount;
+  flowToPond.vol += flowInCbcM;
+}
+Pond.prototype.reduce = function() {
+  if (this.ammount <= 0) { return; }
+  this.ammount -= this.ammount * this.reducedPerHour;
+}
+Pond.prototype.flow = function() {
+  for (var i=0; i < this.flows.length; i++) {
+    this.flows[i].tick();
+  }
+}
+Pond.prototype.tick = function() {
+  this.reduce();
+  this.flow();
+};
+
+// Flow object
+function Flow(flowFromPond, flowToPond, flowInCbcM) {
+  this.flowFromPond = flowFromPond;
+  this.flowToPond = flowToPond;
+  this.flowInCbcM = flowInCbcM;
+};
+Flow.prototype.tick = function() { 
+  this.flowFromPond.pour(this.flowToPond,this.flowInCbcM);
+};
+
+// Execute and save to file
+function exec(ponds, numberOfHours) {
+  var i = 1;
+  var fd = fs.openSync(fileName,'ax');
+  while(i <= numberOfHours) {
+    for(var j=0; j < ponds.length; j++) {
+      ponds[j].tick(); 
+    }
+    var row = Buffer((
+           ponds[0].getConc() + ";" 
+         + ponds[1].getConc() + ";" 
+         + ponds[2].getConc() + ";" 
+         + ponds[3].getConc()
+         ).replace(/\./g,",") 
+         + "\r\n");
+    fs.writeSync(fd, row,0,row.length,5);
+    i++;
+  }
+  fs.closeSync(fd);
+}
+
+module.exports = { Pond: Pond, exec: exec};
