@@ -1,0 +1,42 @@
+{
+  "name": "Pond-Model",
+  "version": "0.0.0",
+  "dependencies": {
+    "body-parser": "1.5.2",
+    "bower": "1.3.8",
+    "cookie-parser": "1.3.2",
+    "express": "3.x.x",
+    "grunt": "^0.4.5",
+    "grunt-contrib-uglify": "^0.5.1",
+    "jade": "x",
+    "method-override": "2.1.2",
+    "mocha": "1.21.x",
+    "mongodb": "1.4.x",
+    "morgan": "1.2.2",
+    "protractor": "1.0.0"
+  },
+  "engines": {
+    "node": "0.10.x",
+    "npm": "1.4.x"
+  },
+  "description": "A boilerplate for the upcomming Eastswedenhack",
+  "main": "web.js",
+  "scripts": {
+    "test": "sh test.sh",
+    "start": "node web.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PabloK/Hackaton-boilerplate.git"
+  },
+  "keywords": [
+    "boilerplate",
+    "nodejs"
+  ],
+  "author": "Pablo Karlsson, David Jonsson, Magnus Weström, Tove Jomer",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PabloK/Hackaton-boilerplate/issues"
+  },
+  "homepage": "https://github.com/PabloK/Hackaton-boilerplate"
+}
